@@ -2,8 +2,10 @@
 
 -- 1. What range of years for baseball games played does the provided database cover? 
 
-SELECT RANGE(year)
+SELECT MAX(year) - MIN (year) AS range
 FROM homegames
+
+-- 145 years
 
 -- 2. Find the name and height of the shortest player in the database. How many games did he play in? What is the name of the team for which he played?
 
@@ -27,7 +29,6 @@ SELECT DISTINCT name, teamid
 FROM teams
 WHERE teamid = 'SLA'
 
-
 ----- combined
 
 SELECT p.playerid, p.namefirst, p.namelast, p.namegiven, p.height, a.teamid, a.g_all, t.name
@@ -40,13 +41,62 @@ WHERE height IS NOT NULL
 ORDER BY height ASC
 LIMIT 1;
 
-
 -- Eddie Gaedel, Edward Carl, 43", 1 game, SLA or St. Louis Browns
 
 
-
--- 3. Find all players in the database who played at Vanderbilt University. Create a list showing each player’s first and last names as well as the total salary they earned in the major leagues. Sort this list in descending order by the total salary earned. Which Vanderbilt player earned the most money in the majors?
+-- 3. Find all players in the database who played at Vanderbilt University. 
+-- Create a list showing each player’s first and last names as well as the total salary they earned in the major leagues. Sort this list in descending order by the total salary earned. Which Vanderbilt player earned the most money in the majors?
 	
+-- school info
+
+SELECT *
+FROM schools
+WHERE schoolid LIKE '%vand%'
+
+-- bridging data table (schools --> collegeplaying --> people --> salaries)
+
+SELECT DISTINCT playerID, schoolid
+FROM collegeplaying
+WHERE schoolid LIKE '%vand%'
+
+-- (24 players)
+
+-- salary
+
+SELECT *
+FROM salaries
+
+---- combining the queries
+
+SELECT p.playerid, p.namefirst, p.namelast, p.namegiven, SUM(salary* 1::money) AS total_salary
+FROM people AS p
+JOIN salaries AS sa
+USING (playerid)
+JOIN collegeplaying AS c
+USING (playerid)
+JOIN schools AS sc
+ON sc.schoolid = c.schoolid
+WHERE sc.schoolid LIKE '%vand%'
+GROUP by playerid
+ORDER by total_salary DESC;
+
+-- highest salary
+
+SELECT p.playerid, p.namefirst, p.namelast, p.namegiven, SUM(salary* 1::money) AS total_salary
+FROM people AS p
+JOIN salaries AS sa
+USING (playerid)
+JOIN collegeplaying AS c
+USING (playerid)
+JOIN schools AS sc
+ON sc.schoolid = c.schoolid
+WHERE sc.schoolid LIKE '%vand%'
+GROUP by playerid
+ORDER by total_salary DESC
+LIMIT 1;
+
+-- David Price, David Taylor, $245,553,888.00
+
 
 -- 4. Using the fielding table, group players into three groups based on their position: label players with position OF as "Outfield", those with position "SS", "1B", "2B", and "3B" as "Infield", and those with position "P" or "C" as "Battery". Determine the number of putouts made by each of these three groups in 2016.
    
