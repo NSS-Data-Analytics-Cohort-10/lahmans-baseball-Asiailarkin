@@ -1,17 +1,49 @@
--- ## Lahman Baseball Database Exercise
--- - this data has been made available [online](http://www.seanlahman.com/baseball-archive/statistics/) by Sean Lahman
--- - A data dictionary is included with the files for this project.
-
--- ### Use SQL queries to find answers to the *Initial Questions*. If time permits, choose one (or more) of the *Open-Ended Questions*. Toward the end of the bootcamp, we will revisit this data if time allows to combine SQL, Excel Power Pivot, and/or Python to answer more of the *Open-Ended Questions*.
-
-
-
 -- **Initial Questions**
 
 -- 1. What range of years for baseball games played does the provided database cover? 
 
+SELECT RANGE(year)
+FROM homegames
+
 -- 2. Find the name and height of the shortest player in the database. How many games did he play in? What is the name of the team for which he played?
-   
+
+-- Find the shortest player
+
+SELECT playerid, namefirst, namelast, namegiven, height
+FROM people
+WHERE height IS NOT NULL
+ORDER BY height ASC
+LIMIT 1;
+
+-- Games played in and team name (team ID)
+
+SELECT teamid, g_all
+FROM appearances
+WHERE playerid = 'gaedeed01'
+
+-- team name
+
+SELECT DISTINCT name, teamid
+FROM teams
+WHERE teamid = 'SLA'
+
+
+----- combined
+
+SELECT p.playerid, p.namefirst, p.namelast, p.namegiven, p.height, a.teamid, a.g_all, t.name
+FROM people AS p
+JOIN appearances AS a
+USING (playerid)
+JOIN teams as t
+USING (teamid)
+WHERE height IS NOT NULL
+ORDER BY height ASC
+LIMIT 1;
+
+
+-- Eddie Gaedel, Edward Carl, 43", 1 game, SLA or St. Louis Browns
+
+
 
 -- 3. Find all players in the database who played at Vanderbilt University. Create a list showing each player’s first and last names as well as the total salary they earned in the major leagues. Sort this list in descending order by the total salary earned. Which Vanderbilt player earned the most money in the majors?
 	
