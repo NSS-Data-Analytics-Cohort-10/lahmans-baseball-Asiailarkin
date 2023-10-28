@@ -96,7 +96,6 @@ LIMIT 1;
 
 -- David Price, David Taylor, $245,553,888.00
 
-
 -- 4. Using the fielding table, group players into three groups based on their position: label players with position OF as "Outfield", those with position "SS", "1B", "2B", and "3B" as "Infield", and those with position "P" or "C" as "Battery". Determine the number of putouts made by each of these three groups in 2016.
 
 -- positions in fielding table
@@ -109,15 +108,49 @@ SELECT DISTINCT pos AS position,
 FROM fielding
 GROUP BY position, position_category;
 
+-- "1B"	"Infield"
+-- "2B"	"Infield"
+-- "3B"	"Infield"
+-- "C"	"Battery"
+-- "OF"	"Outfield"
+-- "P"	"Battery"
+-- "SS"	"Infield"
 
 ---- # of players per position
+SELECT
+	CASE
+	WHEN pos LIKE 'OF' THEN 'Outfield'
+	WHEN pos IN ('1B', '2B', '3B', 'SS') THEN 'Infield'
+	ELSE 'Battery'
+    END AS position_category,
+COUNT(*) AS player_count
+FROM fielding
+GROUP BY position_category;
 
+-- "Battery"	56195
+-- "Infield"	52186
+-- "Outfield"	28434
 
+--- in 2016
+SELECT
+	CASE
+	WHEN pos LIKE 'OF' THEN 'Outfield'
+	WHEN pos IN ('1B', '2B', '3B', 'SS') THEN 'Infield'
+	ELSE 'Battery'
+    END AS position_category,
+SUM(po) AS total_putouts
+FROM fielding
+WHERE yearID = 2016
+GROUP BY position_category;
 
-
+-- "Battery"	41424
+-- "Infield"	58934
+-- "Outfield"	29560
 
 -- 5. Find the average number of strikeouts per game by decade since 1920. Round the numbers you report to 2 decimal places. Do the same for home runs per game. Do you see any trends?
    
+
+GROUP by decade
 
 -- 6. Find the player who had the most success stealing bases in 2016, where __success__ is measured as the percentage of stolen base attempts which are successful. (A stolen base attempt results either in a stolen base or being caught stealing.) Consider only players who attempted _at least_ 20 stolen bases.
 	
