@@ -160,36 +160,193 @@ ORDER BY decade ASC;
 
 -- 6. Find the player who had the most success stealing bases in 2016, where __success__ is measured as the percentage of stolen base attempts which are successful. (A stolen base attempt results either in a stolen base or being caught stealing.) Consider only players who attempted _at least_ 20 stolen bases.
 
-
-FROM batting
+--Player who had the most stolen bases in 2016 ** not successful**
+SELECT 
+	p.namefirst, 
+	p.namelast, 
+	p.namegiven, 
+	b.sb AS stolen_bases
+FROM batting as b
+JOIN people as p
+USING (playerid)
 WHERE yearID = 2016
+ORDER BY b.sb DESC
+LIMIT 1;
+
+-- Jonathan Villar, Jonathan Rafael
+
+--only players who attempted _at least_ 20 successful stolen bases
+SELECT 
+	p.namefirst, 
+	p.namelast, 
+	p.namegiven, 
+	(b.sb*100)/SUM(sb+cs) AS succ_stolen_bases
+FROM batting as b
+JOIN people as p
+USING (playerid)
+WHERE b.sb >= 20 AND yearID = 2016
+GROUP BY 
+	p.namefirst, 
+	p.namelast, 
+	p.namegiven, 
+	b.sb
+ORDER BY succ_stolen_bases DESC
+LIMIT 1;
+
+-- Chris Owings, Christopher Scott, 91
+
+---------------------------- other student's help
+SELECT
+    playerID
+FROM (
+    SELECT
+        playerID,
+        SUM(sb) AS successful_attempts,
+        SUM(cs) AS caught_stealing,
+        SUM(sb) + SUM(cs) AS total_attempts
+    FROM batting
+    WHERE yearID = 2016
+    GROUP BY playerID
+    HAVING SUM(sb) + SUM(cs) >= 20
+) AS StolenBasesStat
+ORDER BY (successful_attempts * 1.0 / total_attempts) DESC
+LIMIT 1;
+		
+
+-- 7.  From 1970 – 2016, what is the largest number of wins for a team that did not win the world series? What is the smallest number of wins for a team that did win the world series? 
+
+-- Doing this will probably result in an unusually small number of wins for a world series champion – determine why this is the case. Then redo your query, excluding the problem year. 
+
+--How often from 1970 – 2016 was it the CASE that a team with the most wins also won the world series? What percentage of the time?
+
+-- 1970 – 2016, what is the largest number of wins for a team that did not win the world series?
+SELECT
+    yearid,
+    name,
+    teamid,
+    MAX(w) AS max_wins,
+    wswin
+FROM teams AS t
+WHERE yearid BETWEEN 1970 AND 2016
+    AND wswin = 'N'
+GROUP BY
+    yearid,
+    name,
+    teamid,
+    wswin
+ORDER BY max_wins DESC;
 
 
+-- smallest number of wins for a team that did win the world series?
+SELECT
+    yearid,
+    name,
+    teamid,
+    MIN(w) AS min_wins,
+    wswin
+FROM teams AS t
+WHERE yearid BETWEEN 1970 AND 2016
+    AND wswin = 'Y'
+GROUP BY
+    yearid,
+    name,
+    teamid,
+    wswin
+ORDER BY min_wins ASC;
 
--- 7.  From 1970 – 2016, what is the largest number of wins for a team that did not win the world series? What is the smallest number of wins for a team that did win the world series? Doing this will probably result in an unusually small number of wins for a world series champion – determine why this is the case. Then redo your query, excluding the problem year. How often from 1970 – 2016 was it the case that a team with the most wins also won the world series? What percentage of the time?
+--- 1981 has an extreme low
 
+--------------------------------
 
+WITH cte1 AS --- a team with the most wins
+	(SELECT
+        yearid,
+        name,
+        teamid,
+        MAX(w) AS max_wins,
+        wswin
+    FROM teams AS t
+    WHERE yearid BETWEEN 1970 AND 2016
+        AND yearid NOT IN (1981)
+    GROUP BY 
+	 yearid,
+        name,
+        teamid,
+        wswin
+    ORDER BY yearid DESC),
+cte2 AS -- also won the world series
+	(SELECT
+        yearid,
+        name,
+        teamid,
+        w,
+        wswin
+    FROM teams
+    WHERE yearid BETWEEN 1970 AND 2016
+        AND yearid NOT IN (1981)
+	 	AND wswin = 'Y'
+    ORDER BY w DESC)
+SELECT
+     SUM(CASE WHEN cte2.wswin = 'Y' THEN 1 ELSE 0 END) AS total_ww_wins,
+    COUNT(DISTINCT cte1.yearid) AS num_years
+FROM cte2
+JOIN cte1
+ON cte1.yearid = cte2.yearid AND cte2.w = cte1.max_wins
+WHERE cte1.max_wins IS NOT NULL;
+
+-- percentage ???
 
 -- 8. Using the attendance figures from the homegames table, find the teams and parks which had the top 5 average attendance per game in 2016 (where average attendance is defined as total attendance divided by number of games). Only consider parks where there were at least 10 games played. Report the park name, team name, and average attendance. Repeat for the lowest 5 average attendance.
 
-
-
+SELECT 
+	park_name, 
+    team, 
+    SUM(attendance)/SUM(games) AS avg_attendance
+FROM parks AS p
+JOIN homegames AS h
+USING (park)
+WHERE year = '2016' AND games > 10
+GROUP BY 
+    park_name,
+    team
+ORDER BY avg_attendance DESC
+LIMIT 5;
 
 -- 9. Which managers have won the TSN Manager of the Year award in both the National League (NL) and the American League (AL)? Give their full name and the teams that they were managing when they won the award.
 
-
+SELECT
+    p.namefirst, 
+    p.namelast, 
+    p.namegiven,
+    a.lgID,
+    t.name AS team,
+    a.yearID
+FROM awardsmanagers AS a
+JOIN people AS p
+ON a.playerID = p.playerID
+JOIN managers AS m
+ON a.yearID = m.yearID
+JOIN teams as t
+ON a.yearID = t.yearID
+WHERE a.playerID IN (
+    SELECT MAX(playerID)
+    FROM awardsmanagers
+    WHERE awardID = 'TSN Manager of the Year'
+    GROUP BY 
+        p.namefirst, 
+        p.namelast, 
+        p.namegiven,
+        a.lgID,
+        t.name,
+        a.yearID)
+ORDER BY p.namefirst;
 
 
 -- 10. Find all players who hit their career highest number of home runs in 2016. Consider only players who have played in the league for at least 10 years, and who hit at least one home run in 2016. Report the players' first and last names and the number of home runs they hit in 2016.
 
 
-WITH cte AS 
-	(SELECT p.playerid, p.namefirst, p.namelast, p.namegiven
-FROM people AS p)
-SELECT MAX(hr)
-FROM teams
-WHERE yearID = 2016
-WHERE 
+
+
 
 -- **Open-ended questions**
 
